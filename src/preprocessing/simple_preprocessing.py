@@ -3,14 +3,14 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.pipeline import make_pipeline
 
-from src.utils.preprocessing_utils import process_data
+from src.utils.preprocessing import process_data
 from src.preprocessing.transforms import (
     NanEncoder,
     NumericalToCategorical,
     IntervalEncoder,
 )
 
-from src.utils.preprocessing_utils import get_columns_by_dtype
+from src.utils.preprocessing import get_columns_by_dtype
 
 
 def make_preprocessing_pipeline():
