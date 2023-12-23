@@ -40,7 +40,7 @@ def process_data(
     if target_transform is not None:
         y_train = target_transform.fit_transform(y_train)
         y_val = target_transform.transform(y_val)
-        joblib.dump(target_transform, Path(folder_path, "target_scaler.save"))
+        joblib.dump(target_transform, Path(folder_path, "target_transform.save"))
 
     X_train = pipeline.fit_transform(df_train)
     X_val = pipeline.transform(df_val)
