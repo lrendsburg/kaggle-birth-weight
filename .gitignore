@@ -10,3 +10,4 @@ results/
 predictions/
 !predictions/sample_submission.csv
 notebooks/playground.ipynb
+mlruns/
