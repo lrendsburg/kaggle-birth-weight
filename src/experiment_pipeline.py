@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-WORTHINESS_THRESHOLD = 5
+WORTHINESS_THRESHOLD = 2
 
 
 class BaseExperiment(ABC):
@@ -108,8 +108,13 @@ class BaseExperiment(ABC):
 
         mlflow.set_experiment(self.model_name)
         with mlflow.start_run():
-            mlflow.log_param("dataset", self.dataset)
-            mlflow.log_params(self.get_params())
+            mlflow.log_params(
+                {
+                    "dataset": self.dataset,
+                    "model": self.model_name,
+                    **self.get_params(),
+                }
+            )
 
             y_train_pred = self.predict(X_train)
             y_val_pred = self.predict(X_val)
