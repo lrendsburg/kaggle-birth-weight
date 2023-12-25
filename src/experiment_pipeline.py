@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-# TODO: change analysis and predicting to dynamic threshold-based on coverage > .9 and sufficiently good winkler score
+WORTHINESS_THRESHOLD = 5
 
 
 class BaseExperiment(ABC):
@@ -80,9 +80,8 @@ class BaseExperiment(ABC):
             logging.warning(f"({stage}): coverage is below 90%.")
 
     def _evaluate_model(self, metrics: dict) -> bool:
-        threshold = 5
         score, coverage = metrics["winkler"], metrics["coverage"]
-        model_is_worthy = (score < threshold) and (coverage > 0.9)
+        model_is_worthy = (score < WORTHINESS_THRESHOLD) and (coverage > 0.9)
 
         if model_is_worthy:
             self.prediction_file_name = (
@@ -138,7 +137,6 @@ class BaseExperiment(ABC):
                         y_pred,
                         stage,
                         model_name=self.prediction_file_name,
-                        save_path=Path("results"),
                     )
                     analysis.full_analysis()
 

@@ -2,6 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+import mlflow
+import tempfile
 
 MAX_DENSITY = 1
 
@@ -15,7 +17,6 @@ class Analysis:
         y_pred: np.ndarray,
         stage: str,
         model_name: str,
-        save_path: str = None,
     ) -> None:
         idxs_sorted = np.argsort(y, axis=0).flatten()
         self.y = y[idxs_sorted].flatten()
@@ -26,7 +27,6 @@ class Analysis:
 
         self.stage = stage
         self.model_name = model_name
-        self.save_path = save_path
 
         self.bins = 80
         color_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -102,6 +102,8 @@ class Analysis:
             linewidth=0.5,
         )
         ax.scatter(self.y, self.y, color=self.target_color, s=1)
+        ax.set_xlim((-5.5, 5.5))
+        ax.set_ylim((-5.5, 5.5))
 
         plt.suptitle(
             f"""Prediction vs target. Model: {self.model_name} / Stage: {self.stage}. 
@@ -145,7 +147,12 @@ class Analysis:
         ax.set_xlim((-5.5, 5.5))
 
     def _save_fig(self, fig, name):
-        if self.save_path is None:
+        if not mlflow.active_run():
             return
-        file_path = Path(self.save_path, f"{self.model_name}_{self.stage}_{name}.png")
-        fig.savefig(file_path)
+
+        with tempfile.NamedTemporaryFile(
+            mode="w+b", prefix=f"{name}_", suffix=".png", delete=True
+        ) as tmpfile:
+            file_path = tmpfile.name
+            fig.savefig(file_path)
+            mlflow.log_artifact(file_path)
