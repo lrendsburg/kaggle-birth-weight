@@ -12,7 +12,7 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
 
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
-        model_kwargs (dict): Parameters of the random forest.
+        model_kwargs (dict): Parameters of the model.
         conformal_coverage (float): The coverage of the confidence interval on the validation set.
     """
 
@@ -39,8 +39,8 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
         return self.model.predict(X).reshape(-1, 1)
 
     def get_params(self):
-        forest_params = self.model.get_params(deep=True)
-        return {**forest_params, "conformal_coverage": self.conformal_coverage}
+        model_params = self.model.get_params(deep=True)
+        return {**model_params, "conformal_coverage": self.conformal_coverage}
 
 
 if __name__ == "__main__":

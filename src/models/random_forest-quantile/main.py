@@ -13,8 +13,10 @@ class QuantileForest(QuantileRegression, BaseExperiment):
 
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
-        model_kwargs (dict): Parameters of the random forest.
-        conformal_coverage (float): The coverage of the confidence interval on the validation set.
+        model_kwargs (dict): Parameters of the model.
+        lower_percentiles (List[float]): List of lower percentiles that are predicted, must be between 0 and 1 - coverage.
+            Corresponding upper percentiles are created implicitly by adding the coverage.
+        coverage (float): coverage of the confidence intervals, must be between 0 and 1.
     """
 
     def __init__(
@@ -39,14 +41,12 @@ class QuantileForest(QuantileRegression, BaseExperiment):
         self.model.fit(X_train, y_train.flatten())
 
     def forward(self, X: np.ndarray) -> np.ndarray:
-        # return self.model.predict(X).reshape(-1, 1)
-        #   y_pred = qrf.predict(X, quantiles=[0.025, 0.5, 0.975])
         return self.model.predict(X, self.percentiles)
 
     def get_params(self):
-        forest_params = self.model.get_params(deep=True)
+        model_params = self.model.get_params(deep=True)
         params = {
-            **forest_params,
+            **model_params,
             "percentiles": self.percentiles,
             "coverage": self.coverage,
         }
