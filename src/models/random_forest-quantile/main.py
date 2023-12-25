@@ -8,8 +8,8 @@ from src.utils.prediction import QuantileRegression
 
 
 class QuantileForest(QuantileRegression, BaseExperiment):
-    """Random forest trained with the square loss to make point predictions. Predictions
-    are then upgraded to confidence intervals using conformal prediction.
+    """Random forest trained with the square loss to predict a given set of quantiles.
+    Confidence intervals are created from quantiles by minimizing their width for a given coverage.
 
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
