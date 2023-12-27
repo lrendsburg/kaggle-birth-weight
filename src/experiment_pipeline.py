@@ -58,6 +58,10 @@ class BaseExperiment(ABC):
                 f"Invalid dataset {self.dataset}. Valid datasets are {valid_datasets}"
             )
 
+    def _validate_params(self, params):
+        if "prediction_type" not in params.keys():
+            raise ValueError("prediction_type must be specified in params.")
+
     def _load_dataset(self):
         dataset_path = Path("datasets", self.dataset)
 
@@ -108,13 +112,13 @@ class BaseExperiment(ABC):
 
         mlflow.set_experiment(self.model_name)
         with mlflow.start_run():
-            mlflow.log_params(
-                {
-                    "dataset": self.dataset,
-                    "model": self.model_name,
-                    **self.get_params(),
-                }
-            )
+            params = {
+                "dataset": self.dataset,
+                "model": self.model_name,
+                **self.get_params(),
+            }
+            self._validate_params(params)
+            mlflow.log_params(params)
 
             y_train_pred = self.predict(X_train)
             y_val_pred = self.predict(X_val)

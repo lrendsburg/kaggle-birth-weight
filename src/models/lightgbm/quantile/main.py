@@ -51,12 +51,8 @@ class QuantileLightGBM(QuantileRegression, BaseExperiment):
 
     def get_params(self):
         model_params = self.models[0].get_params(deep=True)
-        params = {
-            **model_params,
-            "percentiles": self.percentiles,
-            "coverage": self.coverage,
-        }
-        return params
+        prediction_params = QuantileRegression.get_params(self)
+        return {**model_params, **prediction_params}
 
 
 if __name__ == "__main__":

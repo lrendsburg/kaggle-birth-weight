@@ -41,7 +41,7 @@ class DummyModel(BaseExperiment):
         return np.tile(self.confidence_interval, (X.shape[0], 1))
 
     def get_params(self) -> dict:
-        return {"coverage": self.coverage}
+        return {"prediction_type": "direct", "coverage": self.coverage}
 
 
 if __name__ == "__main__":

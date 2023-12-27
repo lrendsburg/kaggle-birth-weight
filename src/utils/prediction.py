@@ -45,6 +45,11 @@ class Prediction(ABC):
         prediction = self.output_to_prediction(output)
         return prediction
 
+    @abstractmethod
+    def get_params(self) -> dict:
+        """Get the parameters of the prediction model."""
+        pass
+
 
 class QuantileRegression(Prediction):
     """Predict confidence intervals based on quantiles.
@@ -91,23 +96,30 @@ class QuantileRegression(Prediction):
     def forward(self, X: np.ndarray) -> np.ndarray:
         raise NotImplementedError("Subclasses should implement this!")
 
+    def get_params(self) -> dict:
+        return {
+            "prediction_type": "quantile",
+            "percentiles": self.percentiles,
+            "quantile_coverage": self.coverage,
+        }
+
 
 class ConformalPrediction(Prediction):
     """Predict confidence intervals based on point predictions.
 
     Args:
-        conformal_coverage (float): coverage of the confidence intervals, must be between 0 and 1.
+        coverage (float): coverage of the confidence intervals, must be between 0 and 1.
     """
 
-    def __init__(self, conformal_coverage: float) -> None:
-        self.conformal_coverage = conformal_coverage
+    def __init__(self, coverage: float) -> None:
+        self.coverage = coverage
         self.width = None
 
     def fit_conformal_width(self, X_val: np.ndarray, y_val: np.ndarray) -> None:
         """Fit the width of the confidence intervals based on the validation error."""
         y_pred = self.forward(X_val)
         error = y_pred - y_val
-        lower_percentile = (1 - self.conformal_coverage) / 2
+        lower_percentile = (1 - self.coverage) / 2
         upper_percentile = 1 - lower_percentile
         self.width = np.quantile(error, upper_percentile) - np.quantile(
             error, lower_percentile
@@ -131,3 +143,9 @@ class ConformalPrediction(Prediction):
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         raise NotImplementedError("Subclasses should implement this!")
+
+    def get_params(self) -> dict:
+        return {
+            "prediction_type": "conformal",
+            "conformal_coverage": self.coverage,
+        }

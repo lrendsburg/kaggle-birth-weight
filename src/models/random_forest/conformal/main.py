@@ -13,17 +13,15 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
         model_kwargs (dict): Parameters of the model.
-        conformal_coverage (float): The coverage of the confidence interval on the validation set.
+        coverage (float): The coverage of the confidence interval on the validation set.
     """
 
-    def __init__(
-        self, dataset: str, model_kwargs: dict, conformal_coverage: float
-    ) -> None:
-        ConformalPrediction.__init__(self, conformal_coverage)
+    def __init__(self, dataset: str, model_kwargs: dict, coverage: float) -> None:
+        ConformalPrediction.__init__(self, coverage)
         BaseExperiment.__init__(self, dataset)
 
         self.model = RandomForestRegressor(**model_kwargs)
-        self.conformal_coverage = conformal_coverage
+        self.coverage = coverage
 
     def fit(
         self,
@@ -40,21 +38,22 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
 
     def get_params(self):
         model_params = self.model.get_params(deep=True)
-        return {**model_params, "conformal_coverage": self.conformal_coverage}
+        prediction_params = ConformalPrediction.get_params(self)
+        return {**model_params, **prediction_params}
 
 
 if __name__ == "__main__":
     dataset = "simple"
     model_kwargs = {
-        "n_estimators": 100,
-        "max_depth": 100,
+        "n_estimators": 10,
+        "max_depth": 10,
         "max_features": 1.0,
         "min_samples_split": 2,
         "min_samples_leaf": 1,
         "bootstrap": True,
     }
 
-    conformal_coverage = 0.90
+    coverage = 0.90
 
-    model = ConformalForest(dataset, model_kwargs, conformal_coverage)
+    model = ConformalForest(dataset, model_kwargs, coverage)
     model.run_experiment()
