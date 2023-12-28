@@ -3,7 +3,7 @@ datasets/*
 !datasets/test.csv
 *.html
 lightning_logs/
-__pycache__/
+*__pycache__/
 todos.md
 *.egg-info
 results/
@@ -11,3 +11,4 @@ predictions/
 !predictions/sample_submission.csv
 notebooks/playground.ipynb
 mlruns/
+catboost_info/
