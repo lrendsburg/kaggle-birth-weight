@@ -46,7 +46,6 @@ class DummyModel(BaseExperiment):
 
 if __name__ == "__main__":
     dataset = "simple"
-
     model_kwargs = {
         "coverage": 0.90,
     }

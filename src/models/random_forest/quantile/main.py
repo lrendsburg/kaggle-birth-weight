@@ -14,19 +14,13 @@ class QuantileForest(QuantileRegression, BaseExperiment):
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
         model_kwargs (dict): Parameters of the model.
-        lower_percentiles (List[float]): List of lower percentiles that are predicted, must be between 0 and 1 - coverage.
-            Corresponding upper percentiles are created implicitly by adding the coverage.
-        coverage (float): coverage of the confidence intervals, must be between 0 and 1.
+        prediction_kwargs (dict): Parameters of the prediction head.
     """
 
     def __init__(
-        self,
-        dataset: str,
-        model_kwargs: dict,
-        lower_percentiles: List[float],
-        coverage: float,
+        self, dataset: str, model_kwargs: dict, prediction_kwargs: dict
     ) -> None:
-        QuantileRegression.__init__(self, lower_percentiles, coverage)
+        QuantileRegression.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
         self.model = RandomForestQuantileRegressor(**model_kwargs)
@@ -58,9 +52,10 @@ if __name__ == "__main__":
         "min_samples_split": 2,
         "min_samples_leaf": 1,
     }
+    prediction_kwargs = {
+        "lower_percentiles": [0.01, 0.03, 0.05, 0.07, 0.09],
+        "coverage": 0.9,
+    }
 
-    lower_percentiles = [0.01, 0.03, 0.05, 0.07, 0.09]
-    coverage = 0.9
-
-    model = QuantileForest(dataset, model_kwargs, lower_percentiles, coverage)
+    model = QuantileForest(dataset, model_kwargs, prediction_kwargs)
     model.run_experiment()

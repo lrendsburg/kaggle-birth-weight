@@ -12,15 +12,16 @@ class ConformalLightGBM(ConformalPrediction, BaseExperiment):
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
         model_kwargs (dict): Parameters of the model.
-        coverage (float): The coverage of the confidence interval on the validation set.
+        prediction_kwargs (dict): Parameters of the prediction head.
     """
 
-    def __init__(self, dataset: str, model_kwargs: dict, coverage: float) -> None:
-        ConformalPrediction.__init__(self, coverage)
+    def __init__(
+        self, dataset: str, model_kwargs: dict, prediction_kwargs: dict
+    ) -> None:
+        ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
         self.model = LGBMRegressor(verbose=-1, **model_kwargs)
-        self.coverage = coverage
 
     def fit(
         self,
@@ -55,8 +56,9 @@ if __name__ == "__main__":
         "min_child_weight": 1.0,  # Minimum sum of instance weight (hessian) needed in a child
         "subsample_for_bin": 200000,  # Number of samples for constructing bins
     }
+    prediction_kwargs = {
+        "coverage": 0.9,
+    }
 
-    coverage = 0.90
-
-    model = ConformalLightGBM(dataset, model_kwargs, coverage)
+    model = ConformalLightGBM(dataset, model_kwargs, prediction_kwargs)
     model.run_experiment()

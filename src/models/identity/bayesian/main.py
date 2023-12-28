@@ -9,18 +9,11 @@ class BayesianLinearRegression(BayesianPrediction, BaseExperiment):
 
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
-        coverage (float): The coverage of the confidence interval on the train set.
+        prediction_kwargs (dict): Parameters of the prediction head.
     """
 
-    def __init__(
-        self,
-        dataset: str,
-        b_0: float,
-        alpha_0: float,
-        delta_0: float,
-        coverage: float,
-    ):
-        BayesianPrediction.__init__(self, b_0, alpha_0, delta_0, coverage)
+    def __init__(self, dataset: str, prediction_kwargs: dict):
+        BayesianPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
     def fit(
@@ -42,7 +35,6 @@ class BayesianLinearRegression(BayesianPrediction, BaseExperiment):
 
 if __name__ == "__main__":
     dataset = "simple"
-
     prediction_kwargs = {
         "b_0": 1.00,
         "alpha_0": 1.0,
@@ -50,5 +42,5 @@ if __name__ == "__main__":
         "coverage": 0.90,
     }
 
-    model = BayesianLinearRegression(dataset, **prediction_kwargs)
+    model = BayesianLinearRegression(dataset, prediction_kwargs)
     model.run_experiment()

@@ -12,15 +12,16 @@ class ConformalXGBoost(ConformalPrediction, BaseExperiment):
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
         model_kwargs (dict): Parameters of the model.
-        coverage (float): The coverage of the confidence interval on the validation set.
+        prediction_kwargs (dict): Parameters of the prediction head.
     """
 
-    def __init__(self, dataset: str, model_kwargs: dict, coverage: float) -> None:
-        ConformalPrediction.__init__(self, coverage)
+    def __init__(
+        self, dataset: str, model_kwargs: dict, prediction_kwargs: dict
+    ) -> None:
+        ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
         self.model = XGBRegressor(**model_kwargs)
-        self.coverage = coverage
 
     def fit(
         self,
@@ -56,8 +57,9 @@ if __name__ == "__main__":
         "colsample_bynode": 1.0,  # Subsample ratio of columns for each split, in each node
         "min_child_weight": 1.0,  # Minimum sum of instance weight (hessian) needed in a child
     }
+    prediction_kwargs = {
+        "coverage": 0.90,
+    }
 
-    coverage = 0.90
-
-    model = ConformalXGBoost(dataset, model_kwargs, coverage)
+    model = ConformalXGBoost(dataset, model_kwargs, prediction_kwargs)
     model.run_experiment()

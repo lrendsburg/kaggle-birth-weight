@@ -12,15 +12,16 @@ class ConformalCatBoost(ConformalPrediction, BaseExperiment):
     Args:
         dataset (str): The dataset (preprocessing method) to be used.
         model_kwargs (dict): Parameters of the model.
-        coverage (float): The coverage of the confidence interval on the validation set.
+        prediction_kwargs (dict): Parameters of the prediction head.
     """
 
-    def __init__(self, dataset: str, model_kwargs: dict, coverage: float) -> None:
-        ConformalPrediction.__init__(self, coverage)
+    def __init__(
+        self, dataset: str, model_kwargs: dict, prediction_kwargs: dict
+    ) -> None:
+        ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
         self.model = CatBoostRegressor(**model_kwargs, verbose=False)
-        self.coverage = coverage
 
     def fit(
         self,
@@ -50,8 +51,9 @@ if __name__ == "__main__":
         "l2_leaf_reg": 3.0,  # Coefficient at the L2 regularization term of the cost function.
         "border_count": 32,  # The number of splits for numerical features.
     }
+    prediction_kwargs = {
+        "coverage": 0.9,
+    }
 
-    coverage = 0.90
-
-    model = ConformalCatBoost(dataset, model_kwargs, coverage)
+    model = ConformalCatBoost(dataset, model_kwargs, prediction_kwargs)
     model.run_experiment()
