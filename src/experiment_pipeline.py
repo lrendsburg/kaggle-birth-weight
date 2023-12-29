@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-WORTHINESS_THRESHOLD = 2
+ANALYZE_AND_PREDICT_THRESHOLD = 2
 
 
 class BaseExperiment(ABC):
@@ -51,6 +51,8 @@ class BaseExperiment(ABC):
         self.model_name = self.__class__.__name__
         self.prediction_file_name = None
 
+        self.analyze_and_predict = False
+
     def _validate_dataset(self):
         valid_datasets = [f.name for f in Path("datasets").iterdir() if f.is_dir()]
         if self.dataset not in valid_datasets:
@@ -85,13 +87,13 @@ class BaseExperiment(ABC):
 
     def _evaluate_model(self, metrics: dict) -> bool:
         score, coverage = metrics["winkler"], metrics["coverage"]
-        model_is_worthy = (score < WORTHINESS_THRESHOLD) and (coverage > 0.9)
-
-        if model_is_worthy:
+        analyze_and_predict = (score < ANALYZE_AND_PREDICT_THRESHOLD) and (
+            coverage > 0.9
+        )
+        if analyze_and_predict:
             self.prediction_file_name = (
                 f"{self.model_name}_s{score:.2f}_c{coverage:.2f}"
             )
-        return model_is_worthy
 
     def _predict_test(self, X_test: np.ndarray, target_transform) -> None:
         """Save predictions on test set."""
@@ -104,6 +106,44 @@ class BaseExperiment(ABC):
         df[["pi_lower", "pi_upper"]] = y_pred
         df.to_csv(Path("predictions", f"{self.prediction_file_name}.csv"), index=False)
 
+    def _log_params(self):
+        params = {
+            "dataset": self.dataset,
+            "model": self.model_name,
+            **self.get_params(),
+        }
+        self._validate_params(params)
+        mlflow.log_params(params)
+
+    def _compute_and_log_metrics(self, X: np.ndarray, y: np.ndarray, stage: str):
+        """Compute and log metrics for a given stage. Also computes the boolean flag
+        'analyze_and_predict' based on the validation metrics to decide whether the model
+        is further analyzed and used to make predictions on the test set."""
+        # Compute metrics
+        y_pred = self.predict(X)
+        metrics = Metrics(y, y_pred).compute_metrics()
+
+        # Print and log metrics
+        self._print_results(metrics, stage)
+        stage_metrics = {f"{k}_{stage}": v for k, v in metrics.items()}
+        mlflow.log_metrics(stage_metrics)
+
+        # Evaluate model
+        if stage == "val":
+            self._evaluate_model(metrics)
+            model_score = -metrics["winkler"]
+            return model_score
+
+    def _analyze_model(self, X: np.ndarray, y: np.ndarray, stage: str):
+        y_pred = self.predict(X)
+        analysis = Analysis(
+            y,
+            y_pred,
+            stage,
+            model_name=self.prediction_file_name,
+        )
+        analysis.full_analysis()
+
     def run_experiment(self):
         X_train, y_train, X_val, y_val, X_test, target_transform = self._load_dataset()
 
@@ -112,45 +152,22 @@ class BaseExperiment(ABC):
 
         mlflow.set_experiment(self.model_name)
         with mlflow.start_run():
-            params = {
-                "dataset": self.dataset,
-                "model": self.model_name,
-                **self.get_params(),
-            }
-            self._validate_params(params)
-            mlflow.log_params(params)
+            self._log_params()
 
-            y_train_pred = self.predict(X_train)
-            y_val_pred = self.predict(X_val)
+            self._compute_and_log_metrics(X_train, y_train, "train")
+            model_score = self._compute_and_log_metrics(X_val, y_val, "val")
 
-            model_is_worthy = False
-            for y, y_pred, stage in [
-                (y_train, y_train_pred, "train"),
-                (y_val, y_val_pred, "val"),
-            ]:
-                metrics = Metrics(y, y_pred).compute_metrics()
-                self._print_results(metrics, stage)
-                if stage == "val":
-                    model_is_worthy = self._evaluate_model(metrics)
-
-                stage_metrics = {f"{k}_{stage}": v for k, v in metrics.items()}
-                mlflow.log_metrics(stage_metrics)
-
-            if model_is_worthy:
+            if self.analyze_and_predict:
                 logging.info(f"(train/val): running analysis.")
-                for X, y, stage in [(X_train, y_train, "train"), (X_val, y_val, "val")]:
-                    y_pred = self.predict(X)
-
-                    analysis = Analysis(
-                        y,
-                        y_pred,
-                        stage,
-                        model_name=self.prediction_file_name,
-                    )
-                    analysis.full_analysis()
+                self._analyze_model(X_train, y_train, "train")
+                self._analyze_model(X_val, y_val, "val")
 
                 logging.info("(test): making predictions.")
                 self._predict_test(X_test, target_transform)
+
+        if hasattr(self, "get_model_score"):
+            model_score = self.get_model_score()
+        return model_score
 
     @abstractmethod
     def fit(
