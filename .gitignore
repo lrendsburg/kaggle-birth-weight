@@ -12,3 +12,6 @@ predictions/
 notebooks/playground.ipynb
 mlruns/
 catboost_info/
+*egg-info
+wandb/
+*.ckpt
