@@ -223,6 +223,10 @@ class BayesianPrediction(Prediction):
             raise RuntimeError("Bayesian head not fitted on training set")
         return self.bayesian_head.evidence()
 
+    # TODO: get_evidence() returns inf for some reason -> fix before sweep
+    def get_model_score(self) -> float:
+        return self.get_evidence()
+
     def forward(self, X: np.ndarray) -> np.ndarray:
         raise NotImplementedError("Subclasses should implement this!")
 
