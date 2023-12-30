@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import gamma
+from scipy.special import loggamma
 from scipy.stats import t
 
 
@@ -78,8 +78,8 @@ class BayesianLinearRegression:
             - self.alpha_n * np.log(self.delta_n)
             + np.sum(np.log(1 / self.b_0 + self.lam))
             - self.d * np.log(self.b_0)
-            + 2 * np.log(gamma(self.alpha_n / 2))
-            - 2 * np.log(gamma(self.alpha_0 / 2))
+            + 2 * loggamma(self.alpha_n / 2)
+            - 2 * loggamma(self.alpha_0 / 2)
         )
         return score
 
