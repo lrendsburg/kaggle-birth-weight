@@ -1,14 +1,16 @@
 from typing import List
 
 import numpy as np
-from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import QuantileRegression
+from src.utils.config import get_params
 
 
-class QuantileCatBoost(QuantileRegression, BaseExperiment):
-    """CatBoost trained with the square loss to predict a given set of quantiles.
+class QuantileXGBoost(QuantileRegression, BaseExperiment):
+    """XGBoost trained with the square loss to predict a given set of quantiles.
     Confidence intervals are created from quantiles by minimizing their width for a given coverage.
 
     Args:
@@ -24,10 +26,8 @@ class QuantileCatBoost(QuantileRegression, BaseExperiment):
         BaseExperiment.__init__(self, dataset)
 
         self.models = [
-            CatBoostRegressor(
-                loss_function=f"Quantile:alpha={percentile}",
-                **model_kwargs,
-                verbose=False,
+            XGBRegressor(
+                objective="reg:quantileerror", quantile_alpha=percentile, **model_kwargs
             )
             for percentile in self.percentiles
         ]
@@ -51,19 +51,20 @@ class QuantileCatBoost(QuantileRegression, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "iterations": 100,  # The maximum number of trees that can be built.
-        "learning_rate": 0.03,  # The learning rate used for reducing the gradient step.
-        "depth": 6,  # Depth of the tree.
-        "l2_leaf_reg": 3.0,  # Coefficient at the L2 regularization term of the cost function.
-        "border_count": 32,  # The number of splits for numerical features.
-    }
-    prediction_kwargs = {
-        "lower_percentiles": [0.03, 0.05, 0.07],
-        "coverage": 0.91,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(trial, "xgboost", "quantile")
+    model = QuantileXGBoost(dataset, model_kwargs, prediction_kwargs)
+    score = model.run_experiment()
+    return score
 
-    model = QuantileCatBoost(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

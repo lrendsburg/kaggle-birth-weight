@@ -1,0 +1,14 @@
+b_0:
+  type: float
+  low: .5
+  high: 2.0
+alpha_0:
+  type: float
+  low: .5
+  high: 2.0
+delta_0:
+  type: float
+  low: .5
+  high: 2.0
+coverage:
+  value: .9

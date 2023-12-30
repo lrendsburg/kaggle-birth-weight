@@ -1,12 +1,14 @@
 import numpy as np
-from catboost import CatBoostRegressor
+from lightgbm import LGBMRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import ConformalPrediction
+from src.utils.config import get_params
 
 
-class ConformalCatBoost(ConformalPrediction, BaseExperiment):
-    """CatBoost trained with the square loss to make point predictions. Predictions
+class ConformalLightGBM(ConformalPrediction, BaseExperiment):
+    """LightGBM trained with the square loss to make point predictions. Predictions
     are then upgraded to confidence intervals using conformal prediction.
 
     Args:
@@ -21,7 +23,7 @@ class ConformalCatBoost(ConformalPrediction, BaseExperiment):
         ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
-        self.model = CatBoostRegressor(**model_kwargs, verbose=False)
+        self.model = LGBMRegressor(verbose=-1, **model_kwargs)
 
     def fit(
         self,
@@ -42,18 +44,22 @@ class ConformalCatBoost(ConformalPrediction, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "iterations": 100,  # The maximum number of trees that can be built.
-        "learning_rate": 0.03,  # The learning rate used for reducing the gradient step.
-        "depth": 6,  # Depth of the tree.
-        "l2_leaf_reg": 3.0,  # Coefficient at the L2 regularization term of the cost function.
-        "border_count": 32,  # The number of splits for numerical features.
-    }
-    prediction_kwargs = {
-        "coverage": 0.9,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(
+        trial, "lightgbm", "conformal"
+    )
+    model = ConformalLightGBM(dataset, model_kwargs, prediction_kwargs)
+    score = model.run_experiment()
+    return score
 
-    model = ConformalCatBoost(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

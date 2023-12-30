@@ -2,9 +2,11 @@ from typing import List
 
 import numpy as np
 from quantile_forest import RandomForestQuantileRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import QuantileRegression
+from src.utils.config import get_params
 
 
 class QuantileForest(QuantileRegression, BaseExperiment):
@@ -43,19 +45,22 @@ class QuantileForest(QuantileRegression, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "n_estimators": 10,
-        "max_depth": 10,
-        "max_features": 1.0,
-        "min_samples_split": 2,
-        "min_samples_leaf": 1,
-    }
-    prediction_kwargs = {
-        "lower_percentiles": [0.01, 0.03, 0.05, 0.07, 0.09],
-        "coverage": 0.9,
-    }
-
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(
+        trial, "random_forest", "quantile"
+    )
     model = QuantileForest(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+    score = model.run_experiment()
+    return score
+
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

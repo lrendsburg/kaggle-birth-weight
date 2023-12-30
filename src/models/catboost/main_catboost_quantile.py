@@ -1,14 +1,16 @@
 from typing import List
 
 import numpy as np
-from xgboost import XGBRegressor
+from catboost import CatBoostRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import QuantileRegression
+from src.utils.config import get_params
 
 
-class QuantileXGBoost(QuantileRegression, BaseExperiment):
-    """XGBoost trained with the square loss to predict a given set of quantiles.
+class QuantileCatBoost(QuantileRegression, BaseExperiment):
+    """CatBoost trained with the square loss to predict a given set of quantiles.
     Confidence intervals are created from quantiles by minimizing their width for a given coverage.
 
     Args:
@@ -24,8 +26,10 @@ class QuantileXGBoost(QuantileRegression, BaseExperiment):
         BaseExperiment.__init__(self, dataset)
 
         self.models = [
-            XGBRegressor(
-                objective="reg:quantileerror", quantile_alpha=percentile, **model_kwargs
+            CatBoostRegressor(
+                loss_function=f"Quantile:alpha={percentile}",
+                **model_kwargs,
+                verbose=False,
             )
             for percentile in self.percentiles
         ]
@@ -49,25 +53,20 @@ class QuantileXGBoost(QuantileRegression, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "n_estimators": 10,
-        "max_depth": 10,
-        "max_leaves": None,
-        "learning_rate": 0.1,
-        "reg_alpha": 0.0,  # L1 regularization on weights
-        "reg_lambda": 1.0,  # L2 regularization on weights
-        "subsample": 1.0,  # Subsample ratio of the training instance
-        "colsample_bytree": 1.0,  # Subsample ratio of columns when constructing each tree
-        "colsample_bylevel": 1.0,  # Subsample ratio of columns for each split, in each level
-        "colsample_bynode": 1.0,  # Subsample ratio of columns for each split, in each node
-        "min_child_weight": 1.0,  # Minimum sum of instance weight (hessian) needed in a child
-    }
-    prediction_kwargs = {
-        "lower_percentiles": [0.03, 0.05, 0.07],
-        "coverage": 0.91,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(trial, "catboost", "quantile")
+    model = QuantileCatBoost(dataset, model_kwargs, prediction_kwargs)
+    score = model.run_experiment()
+    return score
 
-    model = QuantileXGBoost(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

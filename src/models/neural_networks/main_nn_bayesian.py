@@ -2,12 +2,16 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping
+import optuna
+from optuna.integration import PyTorchLightningPruningCallback
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import BayesianPrediction
 from src.models.neural_networks.utils.data_module import DataModule
 from src.models.neural_networks.utils.model import RegressionNetwork
 from src.models.neural_networks.utils.train import LightningModule
+from src.utils.config import get_params
 
 
 class BayesianNN(BayesianPrediction, BaseExperiment):
@@ -22,12 +26,17 @@ class BayesianNN(BayesianPrediction, BaseExperiment):
     """
 
     def __init__(
-        self, dataset: str, model_kwargs: dict, prediction_kwargs: dict
+        self,
+        dataset: str,
+        model_kwargs: dict,
+        prediction_kwargs: dict,
+        trial: optuna.trial.Trial,
     ) -> None:
         BayesianPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
         self.dataset = dataset
         self.model_kwargs = model_kwargs
+        self.trial = trial
 
     def fit(
         self,
@@ -42,10 +51,20 @@ class BayesianNN(BayesianPrediction, BaseExperiment):
         )
         self.model = RegressionNetwork(self.model_kwargs, X_train, y_train)
         lightning_model = LightningModule(self.model, self.model_kwargs, loss="mae")
+        callbacks = [
+            # PyTorchLightningPruningCallback(self.trial, monitor="loss/val"),
+            EarlyStopping(
+                monitor="loss/val",
+                min_delta=0.00,
+                patience=15,
+                mode="min",
+            ),
+        ]
 
         # Train
         trainer = pl.Trainer(
             max_epochs=self.model_kwargs["max_epochs"],
+            callbacks=callbacks,
             logger=WandbLogger(project="kaggle-birth-weight", config=self.get_params()),
             enable_progress_bar=True,
         )
@@ -64,23 +83,22 @@ class BayesianNN(BayesianPrediction, BaseExperiment):
         return {**self.model_kwargs, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        # Architecture
-        "layer_widths": [30, 20, 10],
-        # Training
-        "optimizer": "Adam",
-        "batch_size": 256,
-        "max_epochs": 2,
-        "learning_rate": 1e-3,
-    }
-    prediction_kwargs = {
-        "b_0": 1.00,
-        "alpha_0": 1.0,
-        "delta_0": 1.0,
-        "coverage": 0.90,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(
+        trial, "neural_network", "bayes"
+    )
+    model = BayesianNN(dataset, model_kwargs, prediction_kwargs, trial)
+    score = model.run_experiment()
+    return score
 
-    model = BayesianNN(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

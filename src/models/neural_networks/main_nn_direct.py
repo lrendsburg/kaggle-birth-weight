@@ -2,12 +2,16 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping
+import optuna
+from optuna.integration import PyTorchLightningPruningCallback
 
 from src.experiment_pipeline import BaseExperiment
 from src.models.neural_networks.utils.data_module import DataModule
 from src.models.neural_networks.utils.model import IntervalNetwork
 from src.models.neural_networks.utils.train import LightningModule
 from src.models.neural_networks.utils.callbacks import MetricsCallback
+from src.utils.config import get_params
 
 
 class DirectNN(BaseExperiment):
@@ -18,10 +22,11 @@ class DirectNN(BaseExperiment):
         coverage (float): The coverage of the confidence interval on the train set.
     """
 
-    def __init__(self, dataset: str, model_kwargs: dict):
+    def __init__(self, dataset: str, model_kwargs: dict, trial: optuna.trial.Trial):
         super().__init__(dataset)
         self.dataset = dataset
         self.model_kwargs = model_kwargs
+        self.trial = trial
 
     def fit(
         self,
@@ -36,11 +41,21 @@ class DirectNN(BaseExperiment):
         )
         self.model = IntervalNetwork(self.model_kwargs, X_train, y_train)
         lightning_model = LightningModule(self.model, self.model_kwargs, loss="winkler")
+        callbacks = [
+            MetricsCallback("coverage"),
+            # PyTorchLightningPruningCallback(self.trial, monitor="loss/val"),
+            EarlyStopping(
+                monitor="loss/val",
+                min_delta=0.00,
+                patience=15,
+                mode="min",
+            ),
+        ]
 
         # Train
         trainer = pl.Trainer(
             max_epochs=self.model_kwargs["max_epochs"],
-            callbacks=[MetricsCallback("coverage")],
+            callbacks=callbacks,
             logger=WandbLogger(project="kaggle-birth-weight", config=self.get_params()),
             enable_progress_bar=True,
         )
@@ -56,17 +71,22 @@ class DirectNN(BaseExperiment):
         return {"prediction_type": "direct", **self.model_kwargs}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        # Architecture
-        "layer_widths": [30, 20, 10],
-        # Training
-        "optimizer": "Adam",
-        "batch_size": 256,
-        "max_epochs": 2,
-        "learning_rate": 1e-3,
-    }
+def objective(trial):
+    dataset, model_kwargs, _ = get_params(trial, "neural_network")
+    model = DirectNN(dataset, model_kwargs, trial)
+    score = model.run_experiment()
+    return score
 
-    model = DirectNN(dataset, model_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(
+        direction="maximize", pruner=optuna.pruners.MedianPruner()
+    )
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

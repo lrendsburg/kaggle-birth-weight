@@ -1,8 +1,10 @@
 import numpy as np
 from xgboost import XGBRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import ConformalPrediction
+from src.utils.config import get_params
 
 
 class ConformalXGBoost(ConformalPrediction, BaseExperiment):
@@ -42,24 +44,20 @@ class ConformalXGBoost(ConformalPrediction, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "n_estimators": 10,
-        "max_depth": 10,
-        "max_leaves": None,
-        "learning_rate": 0.1,
-        "reg_alpha": 0.0,  # L1 regularization on weights
-        "reg_lambda": 1.0,  # L2 regularization on weights
-        "subsample": 1.0,  # Subsample ratio of the training instance
-        "colsample_bytree": 1.0,  # Subsample ratio of columns when constructing each tree
-        "colsample_bylevel": 1.0,  # Subsample ratio of columns for each split, in each level
-        "colsample_bynode": 1.0,  # Subsample ratio of columns for each split, in each node
-        "min_child_weight": 1.0,  # Minimum sum of instance weight (hessian) needed in a child
-    }
-    prediction_kwargs = {
-        "coverage": 0.90,
-    }
-
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(trial, "xgboost", "conformal")
     model = ConformalXGBoost(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+    score = model.run_experiment()
+    return score
+
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

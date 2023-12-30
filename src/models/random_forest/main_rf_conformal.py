@@ -1,12 +1,15 @@
 import numpy as np
-from lightgbm import LGBMRegressor
+
+from sklearn.ensemble import RandomForestRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import ConformalPrediction
+from src.utils.config import get_params
 
 
-class ConformalLightGBM(ConformalPrediction, BaseExperiment):
-    """LightGBM trained with the square loss to make point predictions. Predictions
+class ConformalForest(ConformalPrediction, BaseExperiment):
+    """Random forest trained with the square loss to make point predictions. Predictions
     are then upgraded to confidence intervals using conformal prediction.
 
     Args:
@@ -21,7 +24,7 @@ class ConformalLightGBM(ConformalPrediction, BaseExperiment):
         ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
-        self.model = LGBMRegressor(verbose=-1, **model_kwargs)
+        self.model = RandomForestRegressor(**model_kwargs)
 
     def fit(
         self,
@@ -42,23 +45,22 @@ class ConformalLightGBM(ConformalPrediction, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "n_estimators": 10,
-        "max_depth": -1,
-        "num_leaves": None,
-        "learning_rate": 0.1,
-        "reg_alpha": 0.0,  # L1 regularization on weights
-        "reg_lambda": 1.0,  # L2 regularization on weights
-        "subsample": 1.0,  # Subsample ratio of the training instance
-        "colsample_bytree": 1.0,  # Subsample ratio of columns when constructing each tree
-        "min_child_weight": 1.0,  # Minimum sum of instance weight (hessian) needed in a child
-        "subsample_for_bin": 200000,  # Number of samples for constructing bins
-    }
-    prediction_kwargs = {
-        "coverage": 0.9,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(
+        trial, "random_forest", "conformal"
+    )
+    model = ConformalForest(dataset, model_kwargs, prediction_kwargs)
+    score = model.run_experiment()
+    return score
 
-    model = ConformalLightGBM(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")

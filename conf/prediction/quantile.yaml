@@ -1,0 +1,4 @@
+lower_percentiles:
+  value: [.03, .05, .07]
+coverage:
+  value: .9

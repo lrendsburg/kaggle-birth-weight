@@ -1,0 +1,16 @@
+layer_widths:
+  type: categorical
+  choices: [[40, 30, 20, 10], [60, 40, 20], [30, 30, 30], [30, 20, 10]]
+optimizer:
+  type: categorical
+  choices: [Adam, SGD]
+batch_size:
+  type: categorical
+  choices: [64, 128, 256, 512, 1024]
+learning_rate:
+  type: float
+  low: 1e-4
+  high: 1e-1
+  log: true
+max_epochs:
+  value: 300

@@ -1,13 +1,14 @@
 import numpy as np
-
-from sklearn.ensemble import RandomForestRegressor
+from catboost import CatBoostRegressor
+import optuna
 
 from src.experiment_pipeline import BaseExperiment
 from src.utils.prediction import ConformalPrediction
+from src.utils.config import get_params
 
 
-class ConformalForest(ConformalPrediction, BaseExperiment):
-    """Random forest trained with the square loss to make point predictions. Predictions
+class ConformalCatBoost(ConformalPrediction, BaseExperiment):
+    """CatBoost trained with the square loss to make point predictions. Predictions
     are then upgraded to confidence intervals using conformal prediction.
 
     Args:
@@ -22,7 +23,7 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
         ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
-        self.model = RandomForestRegressor(**model_kwargs)
+        self.model = CatBoostRegressor(**model_kwargs, verbose=False)
 
     def fit(
         self,
@@ -43,19 +44,22 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
         return {**model_params, **prediction_params}
 
 
-if __name__ == "__main__":
-    dataset = "simple"
-    model_kwargs = {
-        "n_estimators": 10,
-        "max_depth": 10,
-        "max_features": 1.0,
-        "min_samples_split": 2,
-        "min_samples_leaf": 1,
-        "bootstrap": True,
-    }
-    prediction_kwargs = {
-        "coverage": 0.9,
-    }
+def objective(trial):
+    dataset, model_kwargs, prediction_kwargs = get_params(
+        trial, "catboost", "conformal"
+    )
+    model = ConformalCatBoost(dataset, model_kwargs, prediction_kwargs)
+    score = model.run_experiment()
+    return score
 
-    model = ConformalForest(dataset, model_kwargs, prediction_kwargs)
-    model.run_experiment()
+
+if __name__ == "__main__":
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        objective,
+        n_trials=1,
+        # timeout=3600,
+    )
+
+    best_params, best_value = study.best_params, study.best_value
+    print(f"\n{best_value=} at {best_params=}")
