@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 
 
-ANALYZE_AND_PREDICT_THRESHOLD = 2
+ANALYZE_AND_PREDICT_THRESHOLD = 3
 
 
 class BaseExperiment(ABC):
@@ -87,10 +87,10 @@ class BaseExperiment(ABC):
 
     def _evaluate_model(self, metrics: dict) -> bool:
         score, coverage = metrics["winkler"], metrics["coverage"]
-        analyze_and_predict = (score < ANALYZE_AND_PREDICT_THRESHOLD) and (
+        self.analyze_and_predict = (score < ANALYZE_AND_PREDICT_THRESHOLD) and (
             coverage > 0.9
         )
-        if analyze_and_predict:
+        if self.analyze_and_predict:
             self.prediction_file_name = (
                 f"{self.model_name}_s{score:.2f}_c{coverage:.2f}"
             )
