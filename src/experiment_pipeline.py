@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 import logging
+import yaml
 
 import mlflow
 import numpy as np
@@ -15,7 +16,9 @@ logging.basicConfig(
 )
 
 
-ANALYZE_AND_PREDICT_THRESHOLD = 3
+def read_config(file_path="conf/experiment_pipeline.yaml"):
+    with open(file_path, "r") as file:
+        return yaml.safe_load(file)
 
 
 class BaseExperiment(ABC):
@@ -51,6 +54,8 @@ class BaseExperiment(ABC):
         self.model_name = self.__class__.__name__
         self.prediction_file_name = None
 
+        config = read_config()
+        self.analyze_and_predict_threshold = config.get("analyze_and_predict_threshold")
         self.analyze_and_predict = False
 
     def _validate_dataset(self):
@@ -87,7 +92,7 @@ class BaseExperiment(ABC):
 
     def _evaluate_model(self, metrics: dict) -> bool:
         score, coverage = metrics["winkler"], metrics["coverage"]
-        self.analyze_and_predict = (score < ANALYZE_AND_PREDICT_THRESHOLD) and (
+        self.analyze_and_predict = (score < self.analyze_and_predict_threshold) and (
             coverage > 0.9
         )
         if self.analyze_and_predict:
