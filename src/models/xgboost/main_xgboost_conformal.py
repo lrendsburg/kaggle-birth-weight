@@ -55,8 +55,8 @@ if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
     study.optimize(
         objective,
-        n_trials=1,
-        # timeout=3600,
+        # n_trials=1,
+        timeout=30,
     )
 
     best_params, best_value = study.best_params, study.best_value

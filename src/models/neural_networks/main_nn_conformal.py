@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import torch
 import pytorch_lightning as pl
@@ -51,11 +53,11 @@ class ConformalNN(ConformalPrediction, BaseExperiment):
         self.model = RegressionNetwork(self.model_kwargs, X_train, y_train)
         lightning_model = LightningModule(self.model, self.model_kwargs, loss="mae")
         callbacks = [
-            # PyTorchLightningPruningCallback(self.trial, monitor="loss/val"),
+            PyTorchLightningPruningCallback(self.trial, monitor="loss/val"),
             EarlyStopping(
                 monitor="loss/val",
                 min_delta=0.00,
-                patience=15,
+                patience=10,
                 mode="min",
             ),
         ]
@@ -90,12 +92,16 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction="maximize")
-    study.optimize(
-        objective,
-        n_trials=1,
-        # timeout=3600,
+    parser = argparse.ArgumentParser(description="Optimize with a timeout.")
+    parser.add_argument(
+        "--timeout", type=int, default=30, help="Timeout for optimization in seconds"
     )
+    args = parser.parse_args()
+
+    study = optuna.create_study(
+        direction="maximize", pruner=optuna.pruners.MedianPruner()
+    )
+    study.optimize(objective, timeout=args.timeout)
 
     best_params, best_value = study.best_params, study.best_value
     print(f"\n{best_value=} at {best_params=}")
