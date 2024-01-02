@@ -1,11 +1,11 @@
 iterations:
   type: int
   low: 10
-  high: 500
+  high: 300
 depth:
   type: int
   low: 2
-  high: 15
+  high: 10
 learning_rate:
   type: float
   low: 1e-4
@@ -18,4 +18,4 @@ l2_leaf_reg:
 border_count:
   type: int
   low: 32
-  high: 255
+  high: 150

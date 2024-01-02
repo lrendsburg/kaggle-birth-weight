@@ -5,7 +5,7 @@ n_estimators:
 max_depth:
   type: int
   low: 1
-  high: 50
+  high: 20
 learning_rate:
   type: float
   low: 1e-4
