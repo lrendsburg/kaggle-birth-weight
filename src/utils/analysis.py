@@ -87,7 +87,6 @@ class Analysis:
         plt.suptitle(f"Marginals. Model: {self.model_name} / Stage: {self.stage}")
         plt.tight_layout()
         self._save_fig(fig, "marginals")
-        plt.show()
 
     def target_vs_predicted(self):
         """Show prediction intervals against sorted target values."""
@@ -110,7 +109,6 @@ class Analysis:
             {self.percent_covered}% covered; avg width: {self.avg_width:.2f}"""
         )
         self._save_fig(fig, "target-vs-predicted")
-        plt.show()
 
     def _plot_hist_or_bar(self, ax, data, alpha, color, label):
         """Like ax.hist, but data that are (close to) point masses is plotted as a single bar."""
