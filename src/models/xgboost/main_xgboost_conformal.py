@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 from xgboost import XGBRegressor
 import optuna
@@ -52,12 +54,14 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction="maximize")
-    study.optimize(
-        objective,
-        # n_trials=1,
-        timeout=30,
+    parser = argparse.ArgumentParser(description="Optimize with a timeout.")
+    parser.add_argument(
+        "--timeout", type=int, default=30, help="Timeout for optimization in seconds"
     )
+    args = parser.parse_args()
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, timeout=args.timeout)
 
     best_params, best_value = study.best_params, study.best_value
     print(f"\n{best_value=} at {best_params=}")

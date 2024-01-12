@@ -25,7 +25,7 @@ class ConformalForest(ConformalPrediction, BaseExperiment):
         ConformalPrediction.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
-        self.model = RandomForestRegressor(**model_kwargs)
+        self.model = RandomForestRegressor(**model_kwargs, n_jobs=-1)
 
     def fit(
         self,

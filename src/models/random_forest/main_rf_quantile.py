@@ -26,7 +26,7 @@ class QuantileForest(QuantileRegression, BaseExperiment):
         QuantileRegression.__init__(self, **prediction_kwargs)
         BaseExperiment.__init__(self, dataset)
 
-        self.model = RandomForestQuantileRegressor(**model_kwargs)
+        self.model = RandomForestQuantileRegressor(**model_kwargs, n_jobs=-1)
 
     def fit(
         self,
