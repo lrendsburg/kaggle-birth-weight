@@ -152,12 +152,14 @@ class BaseExperiment(ABC):
     def run_experiment(self):
         X_train, y_train, X_val, y_val, X_test, target_transform = self._load_dataset()
 
-        logging.info(f"Fitting model '{self.model_name}' on dataset '{self.dataset}'.")
-        self.fit(X_train, y_train, X_val, y_val)
-
         mlflow.set_experiment(self.model_name)
         with mlflow.start_run():
             self._log_params()
+
+            logging.info(
+                f"Fitting model '{self.model_name}' on dataset '{self.dataset}'."
+            )
+            self.fit(X_train, y_train, X_val, y_val)
 
             self._compute_and_log_metrics(X_train, y_train, "train")
             model_score = self._compute_and_log_metrics(X_val, y_val, "val")
