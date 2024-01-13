@@ -1,5 +1,5 @@
 lower_percentiles:
   type: categorical
-  choices: [[.05], [.03, .05, .07]]
+  choices: [[.045]]
 coverage:
-  value: .9
+  value: .91
