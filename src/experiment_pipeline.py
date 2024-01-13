@@ -97,7 +97,7 @@ class BaseExperiment(ABC):
         )
         if self.analyze_and_predict:
             self.prediction_file_name = (
-                f"{self.model_name}_s{score:.2f}_c{coverage:.2f}"
+                f"{self.model_name}_s{score:.5f}_c{coverage:.5f}"
             )
 
     def _predict_test(self, X_test: np.ndarray, target_transform) -> None:
