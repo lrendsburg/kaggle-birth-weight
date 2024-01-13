@@ -5,7 +5,7 @@ from xgboost import XGBRegressor
 import optuna
 
 from src.experiment_pipeline import BaseExperiment
-from src.utils.prediction import ConformalPrediction
+from src.prediction.prediction import ConformalPrediction
 from src.utils.config import get_params
 
 

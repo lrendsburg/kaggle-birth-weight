@@ -6,7 +6,7 @@ from catboost import CatBoostRegressor
 import optuna
 
 from src.experiment_pipeline import BaseExperiment
-from src.utils.prediction import QuantileRegression
+from src.prediction.prediction import QuantileRegression
 from src.utils.config import get_params
 
 

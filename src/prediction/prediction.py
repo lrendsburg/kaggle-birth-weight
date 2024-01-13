@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
 
-from src.utils.bayesian_linear_regression import BayesianLinearRegression
+from src.prediction.bayesian_linear_regression import BayesianLinearRegression
 
 
 class Prediction(ABC):

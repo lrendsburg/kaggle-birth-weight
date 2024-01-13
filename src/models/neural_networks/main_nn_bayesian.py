@@ -9,7 +9,7 @@ import optuna
 from optuna.integration import PyTorchLightningPruningCallback
 
 from src.experiment_pipeline import BaseExperiment
-from src.utils.prediction import BayesianPrediction
+from src.prediction.prediction import BayesianPrediction
 from src.models.neural_networks.utils.data_module import DataModule
 from src.models.neural_networks.utils.model import RegressionNetwork
 from src.models.neural_networks.utils.train import LightningModule

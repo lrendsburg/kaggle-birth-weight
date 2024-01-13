@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.experiment_pipeline import BaseExperiment
-from src.utils.prediction import BayesianPrediction
+from src.prediction.prediction import BayesianPrediction
 
 
 class BayesianLinearRegression(BayesianPrediction, BaseExperiment):
